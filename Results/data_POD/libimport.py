@@ -15,9 +15,9 @@ import time
 ##import random
 #import time as timer
 import pickle #
-import trame
-import vtk
-import trame_vtk
+#import trame
+#import vtk
+#import trame_vtk
 
 
 
@@ -523,16 +523,26 @@ def visualize_plot(df,df_3D,wind_direc,wind_speed,grid): # arguement : wind_dire
     #vel=grid2["RECON_U_at_WD_WS"+str(wind_dir)+"_"+str(wind_speed)]
     #fig = plt.figure(figsize=(12,12))
     print(df['X'].iloc[0])
-    slice_z = grid.slice(normal='z',origin=(df['X'].iloc[0], df['Y'].iloc[0], df['Z'].iloc[0]))
+    altitude = grid.points[:, 2] 
+    grid.point_data["Alt"]=altitude
+    
+    slice_z = grid.slice(normal='z',origin=(df['X'].iloc[0], df['Y'].iloc[0], 98))
     #clip_plane = vtki.Plane(normal=['Z'], origin=[df['X'].iloc[0], df['Y'].iloc[0], df['Z'].iloc[0]])
     #clipped_surface = grid.clip(clip_plane)
     clipped_surface=slice_z
     #print(clipped_surface)
-    glyph = clipped_surface.glyph(scale='RECON_U_at_WD_WS'+str(wind_direc)+"_"+str(wind_speed), factor=1)
-
+    glyph = clipped_surface.glyph(scale='RECON_U_at_WD_WS'+str(wind_direc)+"_"+str(wind_speed), orient='RECON_U_at_WD_WS'+str(wind_direc)+"_"+str(wind_speed),factor=10)
+    print(glyph)
 # Plot the result
     p = vtki.Plotter(notebook=True)
-    p.add_mesh(clipped_surface, color='lightblue', show_edges=True)
-    p.add_mesh(glyph)
+    #p.add_mesh(clipped_surface, color='lightblue', show_edges=True)
+    p.add_mesh(glyph,cmap='coolwarm')
+    
+    
+    #p.add_mesh(
+    #grid,
+    #scalars="Alt",
+    #cmap="terrain",
+    #show_scalar_bar=False,)
     p.show()
     
