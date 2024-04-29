@@ -1,19 +1,23 @@
 
 import math
-import matplotlib.pyplot as plt #for plotting
-from scipy.interpolate import Rbf #for regression.
-import pyvista as vtki #for dealing with vtk geometry files
-import numpy as np
-import os, sys
-import pandas as pd
+import os
+#import matplotlib.pyplot as plt #for plotting
+#from scipy.interpolate import Rbf #for regression.
+import pyvista as vtki #for dealing with vtk geometry file i.e. Utest_sample.vtki
+#import numpy as np
+#import os, sys
+import pandas as pd #make and work with dataframes.
+##import vtk
+##from os.path import isdir, isfile, join
+##from os.path import expanduser
+##import json
+import time 
+##import random
+#import time as timer
+import pickle #
+import trame
 import vtk
-from os.path import isdir, isfile, join
-from os.path import expanduser
-import json
-import pickle
-import random
-import time as timer
-import pickle
+import trame_vtk
 
 
 
@@ -126,7 +130,8 @@ def reconstruct_AI_for_winddirection(variable,wind_direc,fn,vectorU=True):
     deltaX=-1480
     deltaY=2120
     deltaZ=229  
-    import time    
+    
+    #import time    
     start = time.process_time()
     # your code here    
     # Assume a wind direction 
@@ -146,8 +151,10 @@ def reconstruct_AI_for_winddirection(variable,wind_direc,fn,vectorU=True):
     PODdata=np.load(filename)
 
     Phit=PODdata['tbasis']
-    tke_mean=PODdata['tmean']    
+    tke_mean=PODdata['tmean']   
+     
     result_sample=vtki.read('Utest_sample.vtk') 
+    
     for wind_dir in [wind_direc]:     
         
         #Obtain coefficient for this wind direction
@@ -160,7 +167,8 @@ def reconstruct_AI_for_winddirection(variable,wind_direc,fn,vectorU=True):
         for i, rbf1 in enumerate(loaded_interpolators):
             predicted_coef.append(rbf1(xsin_winddir,xcos_winddir))
             print('Coeff for mode', i+1 , 'is ', rbf1(xsin_winddir,xcos_winddir))
-
+        print(' ')
+         
        #Reconstruct flow field from the basis modes, the mean and the computed coefficients
         #----------------------------------------------------------------------------------------------------
         tke_at_wind_direction=np.dot(Phit,np.array(predicted_coef))+tke_mean
@@ -186,10 +194,12 @@ def reconstruct_AI_for_winddirection(variable,wind_direc,fn,vectorU=True):
         df_offset=offset_dataset(deltaX,deltaY,deltaZ,df)
         df_offset.to_csv(fn+'/'+ f'{variable}'+'_'+str(wind_dir)+'_Output_Transformed.csv', index=False)
 
-        print("Transformation completed. Output saved to:", fn+'/'+ f'{variable}'+'_'+str(wind_dir)+'_Output_Transformed.csv')      
+        print("Reconstruction completed. Output saved to:", fn+'/'+ f'{variable}'+'_'+str(wind_dir)+'_Output_Transformed.csv')  
+        print(' ')
+            
     #Print time taken
-    print(time.process_time() - start)
-        
+    #print(time.process_time() - start)
+    print(' ')    
     return result_sample,df_offset,time.process_time() - start
 
 # #***************************************************************************************************************************************************'
@@ -297,9 +307,150 @@ from mpl_toolkits.mplot3d import Axes3D
 import numpy as np
 import mplcursors
 
-def visualize_plot(df):
+
+def reconstruct_AI_for_winddirection_windspeed(variable,wind_direc,windspeed,fn,vectorU=True):  
+    
+    deltaX=-1480
+    deltaY=2120
+    deltaZ=229  
+    
+    start = time.process_time()
+    # your code here    
+    # Assume a wind direction 
+    # wind_dir=np.rand270 #in degrees
+    folder = 'data_POD'
+    
+    # Load the Rbf interpolators from a file
+    print(fn+'/'+f"{variable}"+'_rbf_interpolators_all.pkl')
+    with open(fn+'/'+f"{variable}"+'_rbf_interpolators_all.pkl', 'rb') as file:
+        loaded_interpolators = pickle.load(file)
+        
+        
+    #Obtain basis functions : Load saved basis functions (modes) and mean turbulent kinetic energy
+    #----------------------------------------------------------------------------------------------.     
+    filename = fn+'/POD_data_all' +f"{variable}"+'.npz'    
+        
+    PODdata=np.load(filename)
+
+    Phit=PODdata['tbasis']
+    tke_mean=PODdata['tmean']    
+    
+    result_sample=vtki.read('Utest_sample.vtk')
+
+    for wind_dir in [wind_direc]:
+        for wind_spee in [windspeed]:     
+            print (f"wind speed {wind_spee}")
+            print (f"wind direction {wind_dir}")
+            #Obtain coefficient for this wind direction
+            #------------------------------------------------------------------  
+            # Interpolate using the loaded interpolators (for demonstration)
+            predicted_coef = []
+            max_value=360
+            xsin_winddir=np.sin(2 * np.pi * wind_dir / max_value)
+            xcos_winddir=np.cos(2 * np.pi * wind_dir / max_value)
+            for i, rbf1 in enumerate(loaded_interpolators):
+                predicted_coef.append(rbf1(xsin_winddir,xcos_winddir,wind_spee))
+                print('Coeff for mode', i+1 , 'is ', rbf1(xsin_winddir,xcos_winddir,wind_spee))
+
+        #Reconstruct flow field from the basis modes, the mean and the computed coefficients
+            #----------------------------------------------------------------------------------------------------
+            tke_at_wind_direction=np.dot(Phit,np.array(predicted_coef))+tke_mean
+
+            #Visualize reconstructed flow field.
+            #----------------------------------------------------------------------------------------------------
+            if vectorU==False:
+                result_sample.point_data["RECON_tke_at_WD_WS"+str(wind_dir)+"_"+str(wind_spee)]=tke_at_wind_direction
+                df=save_csv_reconstructed_all(result_sample,variable,wind_dir,wind_spee,fn,vectorU) #(grid2,variable,wind_dir,wind_speed,fn,vectorU)
+                #df=pd.read_csv(csv_file)
+                #Make vertiport at 0,0,267. x=x-1480,y=y+2120,z=z+229.               
+            
+            else:
+                U_reshaped=tke_at_wind_direction.reshape(-1, 3, order='F') 
+                result_sample.point_data.set_vectors(U_reshaped,"RECON_U_at_WD_WS"+str(wind_dir)+"_"+str(wind_spee))
+                df=save_csv_reconstructed_all(result_sample,variable,wind_dir,wind_spee,fn,vectorU)
+                
+            path1=os.path.join(fn,'VTK_Database')
+            if not os.path.exists(path1):
+                
+                # If it doesn't exist, create the directory
+                os.makedirs(path1)
+                print(f"Directory '{path1}' created successfully.")
+            else:
+                print(f"Directory '{path1}' already exists.") 
+                   
+            result_sample.save(path1+'/Recon_VTK_added_all_ws_wd' +f"{variable}"+'.vtk')
+            print("VTK reconstruction saved at:", path1+'/Recon_VTK_added_all_ws_wd' +f"{variable}"+'.vtk')      
+            #Offset grid to make vertiport the center 
+            df_offset=offset_dataset(deltaX,deltaY,deltaZ,df)
+            path1=os.path.join(fn,'CSV_Database')
+            if not os.path.exists(path1):
+                
+                # If it doesn't exist, create the directory
+                os.makedirs(path1)
+                print(f"Directory '{path1}' created successfully.")
+            else:
+                print(f"Directory '{path1}' already exists.")
+            df_offset.to_csv(path1+'/'+ f'{variable}'+'_'+str(wind_dir)+'_Output_Transformed_all.csv', index=False)
+
+            print("Transformation completed. Output saved to:", path1+'/'+ f'{variable}'+'_'+str(wind_dir)+'_Output_Transformed_all.csv')      
+    #Print time taken
+        print(time.process_time() - start)
+        
+    return result_sample,df_offset,time.process_time() - start
+
+def save_csv_reconstructed_all(grid2,variable,wind_dir,wind_speed,fn,vectorU):
+    
+    #print("Turbine located at around Y=1500, X=1000 in figure below")
+    data = {'X': grid2.points[:, 0],    #cell_centers.points
+            'Y': grid2.points[:, 1],
+            'Z': grid2.points[:, 2],
+        }
+    df = pd.DataFrame(data)
+
+#Suggest Time for reconstruction in arange below. 
+#To reconstruct at all time-steps and save images, start loop from 0.
+
+    if vectorU==False:        
+        turbke=grid2["RECON_tke_at_WD_WS"+str(wind_dir)+"_"+str(wind_speed)]
+        data2 = {'tke':turbke}
+        df=df.join(pd.DataFrame(data2))
+        df['tke'] = df['tke'].clip(lower=0.001) 
+        
+    else:
+        vel=grid2["RECON_U_at_WD_WS"+str(wind_dir)+"_"+str(wind_speed)]  #tke_at_wind_direction.reshape(-1, 3, order='F')
+        data2 = {'Velocity_X_': vel[:, 0],'Velocity_Y_': vel[:, 1],'Velocity_Z_': vel[:, 2]}
+        df=df.join(pd.DataFrame(data2))            
+        
+       
+        # saveimage(i)
+
+# Save CSV  
+    path1=os.path.join(fn,'CSV_Database')
+    if not os.path.exists(path1):
+        
+        # If it doesn't exist, create the directory
+        os.makedirs(path1)
+        print(f"Directory '{path1}' created successfully.")
+    else:
+        print(f"Directory '{path1}' already exists.")
+
+       
+         
+    csv_file = path1+'/'+ f'{variable}'+'_'+str(wind_dir)+'_'+str(wind_speed)+'_Output_all.csv'     
+    df.to_csv(csv_file, index=False)
+    print(f"CSV file saved successfully: {csv_file}")
+
+    return df 
+#Save Grid
+#grid2.save(fn+'/Velocity_reconstruction_stored.vtk')
+#grid2.save(fn+'/Velocity_reconstruction_stored.vtu') 
+    
+
+
+def visualize_plot(df,df_3D,wind_direc,wind_speed,grid): # arguement : wind_direc for angles in quiver.
     #df=df.to_frame()     
 # Plot 3D terrain map
+    print(wind_direc)
     fig = plt.figure(figsize=(12,12))
     ax = fig.add_subplot(111, projection='3d')
     ax.set_xlabel('X-Relative Distance from vertiport,m')
@@ -323,6 +474,18 @@ def visualize_plot(df):
     cbar.set_label('velocity, m/s')  
     tooltip = mplcursors.cursor(scatter, hover=True)
     tooltip.connect("add", lambda sel: sel.annotation.set_text(labels[sel.target.index]))
+    
+    
+    
+    
+# Plot vectors at specified points using quiver
+    # ax.quiver(df_3D['X'],df_3D['Y'],df_3D['Z'],df_3D['Velocity_X_'],df_3D['Velocity_Y_'],df_3D['Velocity_Z_'],length=15, normalize=True) #ax.quiver(x, y, z, u, v, w)
+    
+   
+# Set plot title and labels
+    #ax.set_title('Vector Plot using Quiver')
+    #ax.set_xlabel('X')
+    #ax.set_ylabel('Y')
 
     plt.show()
     plt.savefig('vel.png')
@@ -356,3 +519,20 @@ def visualize_plot(df):
 
     plt.show()
     plt.savefig('tke.png')
+    
+    #vel=grid2["RECON_U_at_WD_WS"+str(wind_dir)+"_"+str(wind_speed)]
+    #fig = plt.figure(figsize=(12,12))
+    print(df['X'].iloc[0])
+    slice_z = grid.slice(normal='z',origin=(df['X'].iloc[0], df['Y'].iloc[0], df['Z'].iloc[0]))
+    #clip_plane = vtki.Plane(normal=['Z'], origin=[df['X'].iloc[0], df['Y'].iloc[0], df['Z'].iloc[0]])
+    #clipped_surface = grid.clip(clip_plane)
+    clipped_surface=slice_z
+    #print(clipped_surface)
+    glyph = clipped_surface.glyph(scale='RECON_U_at_WD_WS'+str(wind_direc)+"_"+str(wind_speed), factor=1)
+
+# Plot the result
+    p = vtki.Plotter(notebook=True)
+    p.add_mesh(clipped_surface, color='lightblue', show_edges=True)
+    p.add_mesh(glyph)
+    p.show()
+    
