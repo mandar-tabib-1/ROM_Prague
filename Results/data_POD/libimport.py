@@ -522,11 +522,24 @@ def visualize_plot(df,df_3D,wind_direc,wind_speed,grid): # arguement : wind_dire
     
     #vel=grid2["RECON_U_at_WD_WS"+str(wind_dir)+"_"+str(wind_speed)]
     #fig = plt.figure(figsize=(12,12))
-    print(df['X'].iloc[0])
+    print(" Dataframe : min and Max Altitude")
+    print(df['Z'].iloc[0])
+    print(df_3D['Z'].min())
+    print(df_3D['Z'].max())
+    print(" ")
+    
     altitude = grid.points[:, 2] 
+    print(" Grid : min and Max Altitude")
+    print(altitude.min())
+    print(altitude.max())
+    
     grid.point_data["Alt"]=altitude
     
-    slice_z = grid.slice(normal='z',origin=(df['X'].iloc[0], df['Y'].iloc[0], 98))
+    print(df.describe())
+    
+    print(grid)
+    
+    slice_z = grid.slice(normal='z',origin=(df['X'].iloc[0], df['Y'].iloc[0], 268))
     #clip_plane = vtki.Plane(normal=['Z'], origin=[df['X'].iloc[0], df['Y'].iloc[0], df['Z'].iloc[0]])
     #clipped_surface = grid.clip(clip_plane)
     clipped_surface=slice_z
@@ -545,4 +558,6 @@ def visualize_plot(df,df_3D,wind_direc,wind_speed,grid): # arguement : wind_dire
     #cmap="terrain",
     #show_scalar_bar=False,)
     p.show()
+    
+    return grid
     
