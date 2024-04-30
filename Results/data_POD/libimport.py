@@ -350,7 +350,7 @@ def reconstruct_AI_for_winddirection_windspeed(variable,wind_direc,windspeed,fn,
             xcos_winddir=np.cos(2 * np.pi * wind_dir / max_value)
             for i, rbf1 in enumerate(loaded_interpolators):
                 predicted_coef.append(rbf1(xsin_winddir,xcos_winddir,wind_spee))
-                print('Coeff for mode', i+1 , 'is ', rbf1(xsin_winddir,xcos_winddir,wind_spee))
+                # print('Coeff for mode', i+1 , 'is ', rbf1(xsin_winddir,xcos_winddir,wind_spee))
 
         #Reconstruct flow field from the basis modes, the mean and the computed coefficients
             #----------------------------------------------------------------------------------------------------
