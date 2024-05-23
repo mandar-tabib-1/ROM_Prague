@@ -15,10 +15,20 @@ import time
 ##import random
 #import time as timer
 import pickle #
+import requests
+import logging
+
+
+
 #import trame
 #import vtk
 #import trame_vtk
 
+logging.basicConfig(
+    filename='my_log_file.log',   # Name of the log file
+    level=logging.INFO,           # Set the log level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
+    format='%(asctime)s - %(levelname)s - %(message)s'  # Log message format
+)
 
 
 # %run '/media/mandart/D/AI4Hydrop_Prague/ROM/Results/data_POD/libimport.py'
@@ -207,7 +217,7 @@ def reconstruct_AI_for_winddirection(variable,wind_direc,fn,vectorU=True):
 def find_nearest_location(X, Y, Z,df):
     distances = np.sqrt((df['X'] - X)**2 + (df['Y'] - Y)**2 + (df['Z'] - Z)**2)
     nearest_index = distances.idxmin()
-    print ('nearest',nearest_index,df.loc[nearest_index])
+    #print ('nearest',nearest_index,df.loc[nearest_index])
     return df.loc[nearest_index]
 
 import math
@@ -232,10 +242,12 @@ def haversine(lat1, lon1, lat2, lon2):
     distance = 6371 * c *1000 # Radius of Earth in meters
     #print(distance)
     return distance
+
 def check_limits(X_or_longitude, Y_or_latitude, Z,):
     if df['Y'].min() <= Y_or_latitude <= df['Y'].max() and df['X'].min() <= X_or_longitude <= df['X'].max() and df['Z'].min() <= Z <= df['Z'].max():
         # Process the location
-        print("Latitude and longitude are within bounds. Proceeding with further processing.")
+        logging.info("Latitude and longitude are within bounds. Proceeding with further processing.")
+        #print("Latitude and longitude are within bounds. Proceeding with further processing.")
         # Further processing can be done here
     else:
         # Print a warning message
@@ -248,7 +260,7 @@ def get_U_and_k_for_location(X_or_longitude, Y_or_latitude, Z,df,relative_distan
         if relative_distance_in_meter__or__Latlong=='meter':
             if df['Y'].min() <= Y_or_latitude[i] <= df['Y'].max() and df['X'].min() <= X_or_longitude[i] <= df['X'].max() and df['Z'].min() <= Z[i] <= df['Z'].max():
                 # Process the location
-                print("Coordinates are within bounds. Proceeding with further processing.")
+                logging.info("Coordinates are within bounds. Proceeding with further processing.")
                 
                 # Further processing can be done here
             else:
@@ -258,11 +270,11 @@ def get_U_and_k_for_location(X_or_longitude, Y_or_latitude, Z,df,relative_distan
                 print(f"Relative Distance from Vertiport in East-West X direction should be in between the range: {df['Y'].min()} and {df['Y'].max()}")
                 return []
             location_data= df.index[(df['X'] == X_or_longitude[i]) & (df['Y'] == Y_or_latitude[i]) & (df['Z'] == Z[i])]
-            print(location_data,'type')
+            #print(location_data,'type')
         else:
             if df['latitude'].min() <= Y_or_latitude[i] <= df['latitude'].max() and df['longitude'].min() <= X_or_longitude[i] <= df['longitude'].max() and df['Z'].min() <= Z[i] <= df['Z'].max():
                 # Process the location
-                print("Latitude and longitude are within bounds. Proceeding with further processing.")
+                logging.info("Latitude and longitude are within bounds. Proceeding with further processing.")
                 # Further processing can be done here
             else:
             # Print a warning message
@@ -271,7 +283,7 @@ def get_U_and_k_for_location(X_or_longitude, Y_or_latitude, Z,df,relative_distan
                 print(f"Relative Distance from Vertiport in Longitude X direction should be in between the range:{df['longitude'].min()} and {df['longitude'].max()}")
                 return []
             location_data = df.index[(df['latitude'] == Y_or_latitude[i]) & (df['longitude'] == X_or_longitude[i]) & (df['Z'] == Z[i])]
-            print('index',location_data)      
+            # print('index',location_data)      
 
         if len(location_data) == 0:                 
             if relative_distance_in_meter__or__Latlong=='meter':
@@ -280,12 +292,15 @@ def get_U_and_k_for_location(X_or_longitude, Y_or_latitude, Z,df,relative_distan
             else:
                 distances = np.sqrt((df['longitude'] - X_or_longitude[i])**2 + (df['latitude'] - Y_or_latitude[i])**2 + (df['Z'] - Z[i])**2)
                 #distances=haversine(df['latitude'],df['longitude'],Y,X) + np.sqrt(df['Z'] - Z)**2
-                print("using nearest based on lat-long. Haversten  not used.") 
+                #print("using nearest based on lat-long. Haversten  not used.") 
                 
             nearest_index = distances.idxmin()             
             # nearest_location[i] = df.loc[nearest_index] #find_nearest_location(X, Y, Z,df)
             nearest_location[i] = nearest_index #df.loc[nearest_index]
-            print('nearest',i,nearest_location[i],nearest_index)
+            
+            #print('nearest',i,nearest_location[i],nearest_index)
+            logging.info('nearest',i,nearest_location[i],nearest_index)
+            
             #vx=nearest_location['Velocity_X_']
             #vy=nearest_location['Velocity_Y_']
             #vz=nearest_location['Velocity_Z_']
@@ -298,7 +313,7 @@ def get_U_and_k_for_location(X_or_longitude, Y_or_latitude, Z,df,relative_distan
             #U_values = location_data['Velocity_X_']
             #k_values = location_data['k'].tolist()
             nearest_location[i] = location_data #df.loc[nearest_index] #find_nearest_location(X, Y, Z,df)
-            print('nearest',i,nearest_location[i],nearest_index)
+            logging.info('nearest',i,nearest_location[i],nearest_index)
         del location_data
     return df.loc[nearest_location]   
         
@@ -321,7 +336,7 @@ def reconstruct_AI_for_winddirection_windspeed(variable,wind_direc,windspeed,fn,
     folder = 'data_POD'
     
     # Load the Rbf interpolators from a file
-    print(fn+'/'+f"{variable}"+'_rbf_interpolators_all.pkl')
+    logging.info(fn+'/'+f"{variable}"+'_rbf_interpolators_all.pkl')
     with open(fn+'/'+f"{variable}"+'_rbf_interpolators_all.pkl', 'rb') as file:
         loaded_interpolators = pickle.load(file)
         
@@ -339,8 +354,8 @@ def reconstruct_AI_for_winddirection_windspeed(variable,wind_direc,windspeed,fn,
 
     for wind_dir in [wind_direc]:
         for wind_spee in [windspeed]:     
-            print (f"wind speed {wind_spee}")
-            print (f"wind direction {wind_dir}")
+            #print (f"wind speed {wind_spee}")
+            #print (f"wind direction {wind_dir}")
             #Obtain coefficient for this wind direction
             #------------------------------------------------------------------  
             # Interpolate using the loaded interpolators (for demonstration)
@@ -350,7 +365,7 @@ def reconstruct_AI_for_winddirection_windspeed(variable,wind_direc,windspeed,fn,
             xcos_winddir=np.cos(2 * np.pi * wind_dir / max_value)
             for i, rbf1 in enumerate(loaded_interpolators):
                 predicted_coef.append(rbf1(xsin_winddir,xcos_winddir,wind_spee))
-                # print('Coeff for mode', i+1 , 'is ', rbf1(xsin_winddir,xcos_winddir,wind_spee))
+                logging.info('Coeff for mode', i+1 , 'is ', rbf1(xsin_winddir,xcos_winddir,wind_spee))
 
         #Reconstruct flow field from the basis modes, the mean and the computed coefficients
             #----------------------------------------------------------------------------------------------------
@@ -376,9 +391,10 @@ def reconstruct_AI_for_winddirection_windspeed(variable,wind_direc,windspeed,fn,
                 os.makedirs(path1)
                 print(f"Directory '{path1}' created successfully.")
             else:
-                print(f"Directory '{path1}' already exists.") 
+                logging.info(f"Directory '{path1}' already exists.") 
                    
             result_sample.save(path1+'/Recon_VTK_added_all_ws_wd' +f"{variable}"+'.vtk')
+            print(" ")
             print("VTK reconstruction saved at:", path1+'/Recon_VTK_added_all_ws_wd' +f"{variable}"+'.vtk')      
             #Offset grid to make vertiport the center 
             df_offset=offset_dataset(deltaX,deltaY,deltaZ,df)
@@ -387,11 +403,11 @@ def reconstruct_AI_for_winddirection_windspeed(variable,wind_direc,windspeed,fn,
                 
                 # If it doesn't exist, create the directory
                 os.makedirs(path1)
-                print(f"Directory '{path1}' created successfully.")
-            else:
-                print(f"Directory '{path1}' already exists.")
+                logging.info(f"Directory '{path1}' created successfully.")
+            #else:
+                #print(f"Directory '{path1}' already exists.")
             df_offset.to_csv(path1+'/'+ f'{variable}'+'_'+str(wind_dir)+'_Output_Transformed_all.csv', index=False)
-
+            print(" ")
             print("Transformation completed. Output saved to:", path1+'/'+ f'{variable}'+'_'+str(wind_dir)+'_Output_Transformed_all.csv')      
     #Print time taken
         print(time.process_time() - start)
@@ -432,7 +448,8 @@ def save_csv_reconstructed_all(grid2,variable,wind_dir,wind_speed,fn,vectorU):
         os.makedirs(path1)
         print(f"Directory '{path1}' created successfully.")
     else:
-        print(f"Directory '{path1}' already exists.")
+        logging.info(f"Directory '{path1}' already exists.")
+        #print(f"Directory '{path1}' already exists.")
 
        
          
@@ -795,10 +812,11 @@ def haversine(lat1, lon1, lat2, lon2):
     distance = 6371 * c *1000 # Radius of Earth in meters
     #print(distance)
     return distance
+
 def check_limits(X_or_longitude, Y_or_latitude, Z,):
     if df['Y'].min() <= Y_or_latitude <= df['Y'].max() and df['X'].min() <= X_or_longitude <= df['X'].max() and df['Z'].min() <= Z <= df['Z'].max():
         # Process the location
-        print("Latitude and longitude are within bounds. Proceeding with further processing.")
+        logging.info("Latitude and longitude are within bounds. Proceeding with further processing.")
         # Further processing can be done here
     else:
         # Print a warning message
@@ -811,7 +829,7 @@ def get_U_and_k_for_location(X_or_longitude, Y_or_latitude, Z,df,relative_distan
         if relative_distance_in_meter__or__Latlong=='meter':
             if df['Y'].min() <= Y_or_latitude[i] <= df['Y'].max() and df['X'].min() <= X_or_longitude[i] <= df['X'].max() and df['Z'].min() <= Z[i] <= df['Z'].max():
                 # Process the location
-                print("Coordinates are within bounds. Proceeding with further processing.")
+                logging.info("Coordinates are within bounds. Proceeding with further processing.")
                 
                 # Further processing can be done here
             else:
@@ -821,11 +839,11 @@ def get_U_and_k_for_location(X_or_longitude, Y_or_latitude, Z,df,relative_distan
                 print(f"Relative Distance from Vertiport in East-West X direction should be in between the range: {df['Y'].min()} and {df['Y'].max()}")
                 return []
             location_data= df.index[(df['X'] == X_or_longitude[i]) & (df['Y'] == Y_or_latitude[i]) & (df['Z'] == Z[i])]
-            print(location_data,'type')
+            #print(location_data,'type')
         else:
             if df['latitude'].min() <= Y_or_latitude[i] <= df['latitude'].max() and df['longitude'].min() <= X_or_longitude[i] <= df['longitude'].max() and df['Z'].min() <= Z[i] <= df['Z'].max():
                 # Process the location
-                print("Latitude and longitude are within bounds. Proceeding with further processing.")
+                logging.info("Latitude and longitude are within bounds. Proceeding with further processing.")
                 # Further processing can be done here
             else:
             # Print a warning message
@@ -834,7 +852,7 @@ def get_U_and_k_for_location(X_or_longitude, Y_or_latitude, Z,df,relative_distan
                 print(f"Relative Distance from Vertiport in Longitude X direction should be in between the range:{df['longitude'].min()} and {df['longitude'].max()}")
                 return []
             location_data = df.index[(df['latitude'] == Y_or_latitude[i]) & (df['longitude'] == X_or_longitude[i]) & (df['Z'] == Z[i])]
-            print('index',location_data)      
+            #print('index',location_data)      
 
         if len(location_data) == 0:                 
             if relative_distance_in_meter__or__Latlong=='meter':
@@ -843,12 +861,13 @@ def get_U_and_k_for_location(X_or_longitude, Y_or_latitude, Z,df,relative_distan
             else:
                 distances = np.sqrt((df['longitude'] - X_or_longitude[i])**2 + (df['latitude'] - Y_or_latitude[i])**2 + (df['Z'] - Z[i])**2)
                 #distances=haversine(df['latitude'],df['longitude'],Y,X) + np.sqrt(df['Z'] - Z)**2
-                print("using nearest based on lat-long. Haversten  not used.") 
+                logging.info("using nearest based on lat-long. Haversten  not used.") 
                 
             nearest_index = distances.idxmin()             
             # nearest_location[i] = df.loc[nearest_index] #find_nearest_location(X, Y, Z,df)
             nearest_location[i] = nearest_index #df.loc[nearest_index]
-            print('nearest',i,nearest_location[i],nearest_index)
+            #print('nearest',i,nearest_location[i],nearest_index)
+            
             #vx=nearest_location['Velocity_X_']
             #vy=nearest_location['Velocity_Y_']
             #vz=nearest_location['Velocity_Z_']
@@ -861,7 +880,7 @@ def get_U_and_k_for_location(X_or_longitude, Y_or_latitude, Z,df,relative_distan
             #U_values = location_data['Velocity_X_']
             #k_values = location_data['k'].tolist()
             nearest_location[i] = location_data #df.loc[nearest_index] #find_nearest_location(X, Y, Z,df)
-            print('nearest',i,nearest_location[i],nearest_index)
+            #print('nearest',i,nearest_location[i],nearest_index)
         del location_data
     return df.loc[nearest_location]   
         
@@ -884,7 +903,7 @@ def reconstruct_AI_for_winddirection_windspeed(variable,wind_direc,windspeed,fn,
     folder = 'data_POD'
     
     # Load the Rbf interpolators from a file
-    print(fn+'/'+f"{variable}"+'_rbf_interpolators_all.pkl')
+    # print(fn+'/'+f"{variable}"+'_rbf_interpolators_all.pkl')
     with open(fn+'/'+f"{variable}"+'_rbf_interpolators_all.pkl', 'rb') as file:
         loaded_interpolators = pickle.load(file)
         
@@ -902,8 +921,8 @@ def reconstruct_AI_for_winddirection_windspeed(variable,wind_direc,windspeed,fn,
 
     for wind_dir in [wind_direc]:
         for wind_spee in [windspeed]:     
-            print (f"wind speed {wind_spee}")
-            print (f"wind direction {wind_dir}")
+            #print (f"wind speed {wind_spee} ")
+            #print (f"wind direction {wind_dir}")
             #Obtain coefficient for this wind direction
             #------------------------------------------------------------------  
             # Interpolate using the loaded interpolators (for demonstration)
@@ -937,12 +956,14 @@ def reconstruct_AI_for_winddirection_windspeed(variable,wind_direc,windspeed,fn,
                 
                 # If it doesn't exist, create the directory
                 os.makedirs(path1)
-                print(f"Directory '{path1}' created successfully.")
+                logging.info(f"Directory '{path1}' created successfully.")
             else:
-                print(f"Directory '{path1}' already exists.") 
+                logging.info(f"Directory '{path1}' already exists.")
+                # print(f"Directory '{path1}' already exists.") 
                    
             result_sample.save(path1+'/Recon_VTK_added_all_ws_wd' +f"{variable}"+'.vtk')
-            print("VTK reconstruction saved at:", path1+'/Recon_VTK_added_all_ws_wd' +f"{variable}"+'.vtk')      
+            print(" ")
+            print("Done. VTK reconstruction saved at:", path1+'/Recon_VTK_added_all_ws_wd' +f"{variable}"+'.vtk')      
             #Offset grid to make vertiport the center 
             df_offset=offset_dataset(deltaX,deltaY,deltaZ,df)
             path1=os.path.join(fn,'CSV_Database')
@@ -950,11 +971,12 @@ def reconstruct_AI_for_winddirection_windspeed(variable,wind_direc,windspeed,fn,
                 
                 # If it doesn't exist, create the directory
                 os.makedirs(path1)
-                print(f"Directory '{path1}' created successfully.")
+                logging.info(f"Directory '{path1}' created successfully.")
             else:
-                print(f"Directory '{path1}' already exists.")
+                logging.info(f"Directory '{path1}' already exists.")
+                # print(f"Directory '{path1}' already exists.")
             df_offset.to_csv(path1+'/'+ f'{variable}'+'_'+str(wind_dir)+'_Output_Transformed_all.csv', index=False)
-
+            print(" ")
             print("Transformation completed. Output saved to:", path1+'/'+ f'{variable}'+'_'+str(wind_dir)+'_Output_Transformed_all.csv')      
     #Print time taken
         print(time.process_time() - start)
@@ -995,7 +1017,7 @@ def save_csv_reconstructed_all(grid2,variable,wind_dir,wind_speed,fn,vectorU):
         os.makedirs(path1)
         print(f"Directory '{path1}' created successfully.")
     else:
-        print(f"Directory '{path1}' already exists.")
+        logging.info(f"Directory '{path1}' already exists.")
 
        
          
@@ -1007,19 +1029,17 @@ def save_csv_reconstructed_all(grid2,variable,wind_dir,wind_speed,fn,vectorU):
 #Save Grid
 #grid2.save(fn+'/Velocity_reconstruction_stored.vtk')
 #grid2.save(fn+'/Velocity_reconstruction_stored.vtu') 
-    
-
 
 def visualize_slice(df,df_3D,wind_direc,wind_speed,grid,sliceloc): # arguement : wind_direc for angles in quiver.
    
     
     df['Velocity_Magnitude']=np.sqrt(df['Velocity_X_']**2+  df['Velocity_Y_']**2+df['Velocity_Z_']**2)
     
-    print(" Dataframe : min and Max Altitude")
-    print(df['Z'].iloc[0])
-    print(df_3D['Z'].min())
-    print(df_3D['Z'].max())
-    print(" ")
+    #print(" Dataframe : min and Max Altitude")
+    #print(df['Z'].iloc[0])
+    #print(df_3D['Z'].min())
+    #print(df_3D['Z'].max())
+    #print(" ")
     
     altitude = grid.points[:, 2] 
     print(" Grid : min and Max Altitude")
@@ -1028,9 +1048,9 @@ def visualize_slice(df,df_3D,wind_direc,wind_speed,grid,sliceloc): # arguement :
     
     grid.point_data["Alt"]=altitude
     
-    print(df.describe())
+    #print(df.describe())
     
-    print(grid)
+    #print(grid)
     
     slice_z = grid.slice(normal='z',origin=(df['X'].iloc[0], df['Y'].iloc[0],sliceloc))
     #clip_plane = vtki.Plane(normal=['Z'], origin=[df['X'].iloc[0], df['Y'].iloc[0], df['Z'].iloc[0]])
@@ -1038,7 +1058,7 @@ def visualize_slice(df,df_3D,wind_direc,wind_speed,grid,sliceloc): # arguement :
     clipped_surface=slice_z
     #print(clipped_surface)
     glyph = clipped_surface.glyph(scale='RECON_U_at_WD_WS'+str(wind_direc)+"_"+str(wind_speed), orient='RECON_U_at_WD_WS'+str(wind_direc)+"_"+str(wind_speed),factor=10)
-    print(glyph)
+    #print(glyph)
 # Plot the result
     p = vtki.Plotter(notebook=True)
     #p.add_mesh(clipped_surface, color='lightblue', show_edges=True)
@@ -1054,3 +1074,205 @@ def visualize_slice(df,df_3D,wind_direc,wind_speed,grid,sliceloc): # arguement :
     
     return grid
     
+def demo(random_coordinates,date_and_hrs_only,fn2,API_KEY = 'fa3e3882b6508618a835169fb753d745'): 
+    Macroscale_ws_wd_prediction= pd.DataFrame(columns=['lat', 'lon','ws','wd'])    
+    for idx, (lat, lon) in enumerate(random_coordinates, start=1):
+        # print(f"Coordinate {idx}: Latitude = {lat}, Longitude = {lon}")
+        url=f'https://api.openweathermap.org/data/2.5/forecast?lat={lat}&lon={lon}&appid={API_KEY}'
+        # Make API request
+        #url=f'http://api.openweathermap.org/data/2.5/forecast?id=524901&appid={API_KEY}'
+        #url = f'https://api.openweathermap.org/data/2.5/onecall/timemachine?lat=50.0755&lon=14.4378&dt={date}&appid={API_KEY}'
+        response = requests.get(url)
+
+        # url=f'https://api.openweathermap.org/data/3.0/onecall?lat={lat}&lon={lon}&exclude={part}&appid={API_KEY}'
+        if response.status_code == 200:
+            data = response.json()
+            # print(data)
+            #for forecast in data['list']:  
+                # print(forecast)    #forecast is a list within data[list].  
+                #if forecast['dt_txt'].split()[0] == dateonly:
+                    #print(forecast['dt_txt'])
+
+                #print(forecast['dt_txt']) #outputs date_time data
+                #if forecast['dt_txt']==date_and_hrs_only:
+                    #print(forecast['dt_txt'])
+
+
+            #For date only
+            #target_forecast = [forecast for forecast in data['list'] if forecast['dt_txt'].split()[0] == dateonly]
+
+            #For date and hrs.
+            target_forecast = [forecast for forecast in data['list'] if forecast['dt_txt'] == date_and_hrs_only]
+            #print("target forecast is a new list of lists.")
+            #print(target_forecast)
+
+            if target_forecast:
+                #print("out of " , len(target_forecast),f" hourly forecasts on the date : {dateonly}" )
+                #print(f"Selecting wind speed and wind direction for time : {target_forecast[3]['dt_txt']}")
+                ws = [forecast['wind']['speed'] for forecast in target_forecast]
+                deg = [forecast['wind']['deg'] for forecast in target_forecast]
+                #print(ws)
+                #print(deg)
+                Macroscale_ws_wd_prediction=pd.concat([Macroscale_ws_wd_prediction,pd.DataFrame({'lat': lat, 'lon': lon, 'ws': ws, 'wd':deg})],ignore_index=True)
+                #average_ws = sum(ws) / len(ws)
+                #print(f"Average ws on {dateonly}: {average_ws} mps")  
+
+            else:
+                print(f"No forecast available for {date_and_hrs_only}")
+                print(f"Select NEW DATES in future and run again")
+                return None, None, None,None,None
+            # Extract wind speed and direction
+            #wind_speedx = data['list'][0] #['wind']['speed']
+            #print(wind_speedx) #['wind']['speed']))
+            #wind_direction = data['current']['wind_deg']
+            #print(f"Wind Speed on {date}: {wind_speed} m/s")
+            #print(f"Wind Direction on {date}: {wind_direction} degrees")
+        else:
+            print("Error fetching data:", response.status_code)
+            print("Check and Get new API KEY. Run again")
+        
+    if not os.path.exists(fn2):
+        
+    # If it doesn't exist, create the directory
+        os.makedirs(directory_path)
+        print(f"Directory '{fn2}' created successfully.")
+        print(" ")
+    else:
+        logging.info(f"Directory '{fn2}' already exists.")
+        print(" ")
+
+    path1=os.path.join(fn2,'libimport.py')   
+    path2=os.path.join(fn2,'funcimport.py')
+
+# Step . Ask for user inputs - wind direction in degrees, locations in latitude/longitude.
+# Ask for user inputs
+
+    user_input_at_command=False
+
+    if user_input_at_command==True:
+        
+        wind_direc = float(input("Enter single wind direction in degree: "))
+        
+        wind_speed = float(input("Enter  inlet wind speed in mps in region between 0.5 to 8 mps:"))
+        
+        latitude_input = input("Enter list of latitudes (Y) in Decimal Degree(in comma-separated in range between 50.04585949932427 and 50.053957709673476) : example - 50.05,50.047 ")
+
+        longitude_input = input("Enter list of longitudes (X) in Decimal Degree (in comma-separated in range between 14.430968123655077 and 14.444980676344922): 14.44,14.431")
+
+        altitude_input = input("Enter list of altitudes in m 267m>Z>500m (comma-separated): 270,300")
+        
+        longitude_list = [float(lon) for lon in longitude_input.split(',')]
+        altitude_list = [float(alt) for alt in altitude_input.split(',')]
+        latitude_list = [float(lat) for lat in latitude_input.split(',')]
+        
+    else:
+        wind_direc=deg[0] #90
+        wind_speed=np.max([np.min([ws[0],8]),0.5]) #np.min(ws[0],8) #np.max([np.min(ws[0],8),0.5])
+        print(f"Inputs obtained from Meso-scale open_weather_map for {date_and_hrs_only} is :")
+        print(f"wind direction is {wind_direc} degrees and wind speed is {wind_speed} mps")
+        print(" ")
+        latitude_list=Macroscale_ws_wd_prediction['lat'].values #[50.05,50.047]
+        longitude_list=Macroscale_ws_wd_prediction['lon'].values #[14.44,14.431]
+        altitude_list=[300]*Macroscale_ws_wd_prediction['lat'].shape[0] #[270,300] 
+    #Check if all points are within the range . Keep only those that are in the range.count
+ 
+
+    # Print the inputs for verification
+    if len(latitude_list) != len(longitude_list) or len(latitude_list) != len(altitude_list):
+        print("Error: The lists of latitude, longitude, and altitude must have the same length.")
+    #else:
+        #print("Wind direction:", wind_direc)
+        #print("Latitude list:", latitude_list)
+        #print("Longitude list:", longitude_list)
+        #print("Altitude list:", altitude_list)
+
+
+    # Step . Reconstruct data using wind direction.
+    print("  ")
+    print("COMPUTING: AI model is obtaining Wind Velocity and Turbulence in the city region (micro-scale predictions) using the input meso-scale wind direction and wind-speed for selected data and time.")
+    print("  ")
+    result_samples_k,dataframe_k,timetaken_k=reconstruct_AI_for_winddirection_windspeed("k",wind_direc,wind_speed,fn2,vectorU=False) #nr not needed.
+    result_samples_U,dataframe_U,timetaken_U=reconstruct_AI_for_winddirection_windspeed("U",wind_direc,wind_speed,fn2,vectorU=True)  #nr not neeeded. 
+    merged_dataframe_U_k_Relative_2_vertiport_reconstructed = pd.merge(dataframe_k,dataframe_U, on=['X','Y','Z'], how='outer')
+    print(f'Done. Total time taken for reconstruction - {timetaken_U+timetaken_k} s')
+    print("  ")
+
+    ref_long_at_vertiport=14.4379744
+    ref_latitude_at_vertiport=50.0499086
+    #Latitude is the Y axis, longitude is the X axis. Belo since X,Y are relative to vertiport. Hence, we use this to obtain relative change in latitude/long from vertiport. then add reference to this change to get actual latitude and longitude.
+    merged_dataframe_U_k_Relative_2_vertiport_reconstructed['latitude']=(merged_dataframe_U_k_Relative_2_vertiport_reconstructed['Y'] / 111139)+ref_latitude_at_vertiport
+    lat_rad= math.radians(ref_latitude_at_vertiport) #merged_df_U_k_Relative_2_vertiport_reconstructed['latitude'].apply(math.radians)
+    #lat_rad.apply(math.cos)
+    cos_lat_rad=math.cos(lat_rad)
+    merged_dataframe_U_k_Relative_2_vertiport_reconstructed['longitude']=(merged_dataframe_U_k_Relative_2_vertiport_reconstructed['X'] / (111139 * cos_lat_rad))+ref_long_at_vertiport
+    #df['Velocity_Magnitude']=np.sqrt(df['Velocity_X_']**2+  df['Velocity_Y_']**2+df['Velocity_Z_']**2)
+
+    merged_dataframe_U_k_Relative_2_vertiport_reconstructed["Velocity_mag"]=np.sqrt(merged_dataframe_U_k_Relative_2_vertiport_reconstructed["Velocity_X_"]**2+\
+                                                                                    merged_dataframe_U_k_Relative_2_vertiport_reconstructed["Velocity_Y_"]**2 + \
+                                                                                        merged_dataframe_U_k_Relative_2_vertiport_reconstructed["Velocity_Z_"]**2)
+
+    merged_dataframe_U_k_Relative_2_vertiport_reconstructed['Normalized_Velocity']=(merged_dataframe_U_k_Relative_2_vertiport_reconstructed["Velocity_mag"]-merged_dataframe_U_k_Relative_2_vertiport_reconstructed["Velocity_mag"].min())/\
+        (merged_dataframe_U_k_Relative_2_vertiport_reconstructed["Velocity_mag"].max()-merged_dataframe_U_k_Relative_2_vertiport_reconstructed["Velocity_mag"].min())
+
+
+    merged_dataframe_U_k_Relative_2_vertiport_reconstructed['Normalized_turbulence']=(merged_dataframe_U_k_Relative_2_vertiport_reconstructed["tke"]-merged_dataframe_U_k_Relative_2_vertiport_reconstructed["tke"].min())/\
+        (merged_dataframe_U_k_Relative_2_vertiport_reconstructed["tke"].max()-merged_dataframe_U_k_Relative_2_vertiport_reconstructed["tke"].min())
+    
+
+    #merged_dataframe_U_k_Relative_2_vertiport_reconstructed['normalized_U']=merged_dataframe_U_k_Relative_2_vertiport_reconstructed
+
+    # Step. Obtain values at specific points. 
+    print("  ")
+    print("Obtaining values at drone trajectory points from the reconstructed field.")
+    print("  ")
+    wind_data_near_drone_trajectory =get_U_and_k_for_location(longitude_list,latitude_list,altitude_list,merged_dataframe_U_k_Relative_2_vertiport_reconstructed,relative_distance_in_meter__or__Latlong='relat')
+    #print(wind_data_near_drone_trajectory)
+    print(" ")
+    print("1. Done. In python, see DataFrame variable - wind_data_near_drone_trajectory . It shows  wind velocity and turbulence at chosen drone trajectory locations.")
+    print("2. For more information: See Saved CSV files for  wind velocity and turbulence at chosen drone trajectory locations.")
+    print(" ")
+    print("2. For more information: See Saved VTK file for in Paraview or pyVista to visualize the reconstructed flow field")
+    print(" ")
+
+
+    print("Obtaining locations in Prague with high TURBULENCE and high WIND using a threhold of 0.95 times normalized values.")
+    threshold=0.95
+    locations_at_high_turbulence=merged_dataframe_U_k_Relative_2_vertiport_reconstructed[merged_dataframe_U_k_Relative_2_vertiport_reconstructed['Normalized_Velocity']>threshold]
+    locations_at_high_wind_magnitude=merged_dataframe_U_k_Relative_2_vertiport_reconstructed[merged_dataframe_U_k_Relative_2_vertiport_reconstructed['Normalized_turbulence']>threshold]
+    print("High_turbulence locations obtained....")
+    print(" ")
+    #print(locations_at_high_turbulence)
+    print("For more information: See contents of the variable: locations_at_high_turbulence ")
+    print(" ")
+    print("High_WIND locations obtained....")
+    print(" ")
+    #print(locations_at_high_wind_magnitude)
+    print("or more information: See contents of the variable: locations_at_high_wind_magnitude ")
+    print(" ")
+    
+    print("obtain locations near max turbulence limit")
+    value=merged_dataframe_U_k_Relative_2_vertiport_reconstructed['tke'].max()
+    diff = (merged_dataframe_U_k_Relative_2_vertiport_reconstructed['tke']- value).abs() # Find the column-wise absolute difference from the provided value
+    nearest_index = diff.idxmin() # Find the index (row label) where the minimum absolute difference occurs 
+    nearest_values = merged_dataframe_U_k_Relative_2_vertiport_reconstructed.iloc[nearest_index] # # Get the values at these indices
+
+    #print("Nearest location for", value, "is", nearest_values)  
+
+    visualization='True'
+    if visualization=='True':
+        print("  ")
+        print("Ignore notebook backend error and :")
+        print("Visualize the micro-scale flow vectors in city centre as generated by AI in image.")
+        print("  ")
+        stride=10
+        slice_location=49
+        visualize_slice(wind_data_near_drone_trajectory,merged_dataframe_U_k_Relative_2_vertiport_reconstructed[::stride],wind_direc,wind_speed,result_samples_U,slice_location)
+
+        
+    columnsTitles=['latitude', 'longitude','Velocity_Magnitude','Normalized_Velocity','tke', 'Normalized_turbulence','X', 'Y', 'Z',  'Velocity_X_', 'Velocity_Y_', 'Velocity_Z_','Velocity_mag']
+
+    wind_data_near_drone_trajectory = wind_data_near_drone_trajectory.reindex(columns=columnsTitles)            
+    
+    return Macroscale_ws_wd_prediction, wind_data_near_drone_trajectory,locations_at_high_turbulence,locations_at_high_wind_magnitude,merged_dataframe_U_k_Relative_2_vertiport_reconstructed
+    
+
