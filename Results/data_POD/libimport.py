@@ -1074,7 +1074,7 @@ def visualize_slice(df,df_3D,wind_direc,wind_speed,grid,sliceloc): # arguement :
     
     return grid
     
-def demo(random_coordinates,date_and_hrs_only,fn2,API_KEY = 'fa3e3882b6508618a835169fb753d745'): 
+def demo(random_coordinates,date_and_hrs_only,fn2,API_KEY = 'fa3e3882b6508618a835169fb753d745',visualization=False): 
     Macroscale_ws_wd_prediction= pd.DataFrame(columns=['lat', 'lon','ws','wd'])    
     for idx, (lat, lon) in enumerate(random_coordinates, start=1):
         # print(f"Coordinate {idx}: Latitude = {lat}, Longitude = {lon}")
@@ -1258,7 +1258,7 @@ def demo(random_coordinates,date_and_hrs_only,fn2,API_KEY = 'fa3e3882b6508618a83
 
     #print("Nearest location for", value, "is", nearest_values)  
 
-    visualization='True'
+    #visualization='True'
     if visualization=='True':
         print("  ")
         print("Ignore notebook backend error and :")
